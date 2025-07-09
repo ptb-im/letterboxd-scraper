@@ -11,7 +11,7 @@ def scrape():
         raise Exception(f"Failed to fetch page: {response.status_code}")
     
     with open("debug.html", "w", encoding="utf-8") as f:
-    f.write(response.text)
+        f.write(response.text)
 
     
     soup = BeautifulSoup(response.text, "html.parser")
