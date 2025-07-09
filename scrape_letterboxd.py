@@ -6,20 +6,27 @@ USERNAME = "paulietheboss"
 URL = f"https://letterboxd.com/{USERNAME}/films/diary/"
 
 def scrape():
-    response = requests.get(URL)
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        )
+    }
+    response = requests.get(URL, headers=headers)
     if response.status_code != 200:
         raise Exception(f"Failed to fetch page: {response.status_code}")
-    
+
+    # Save raw HTML for debugging purposes
     with open("debug.html", "w", encoding="utf-8") as f:
         f.write(response.text)
 
-    
     soup = BeautifulSoup(response.text, "html.parser")
     films = []
 
-    entries = soup.select("ul.diary-table tbody tr")  # safer selector
+    # Select diary entries rows
+    entries = soup.select("table.diary-table tr.diary-entry-row")
 
-    for entry in entries[:4]:
+    for entry in entries[:4]:  # Get last 4 entries
         title_el = entry.select_one("td.td-film-details a.film-title")
         date_el = entry.select_one("td.td-day")
 
