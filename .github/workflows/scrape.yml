@@ -1,19 +1,17 @@
-name: Scrape Letterboxd
+name: Scrape Letterboxd and Deploy JSON
 
 on:
   schedule:
-    - cron: "0 0 * * *" # Runs daily at midnight UTC
-  workflow_dispatch: # Manual trigger
+    - cron: "0 0 * * *"   # daily at midnight UTC
+  workflow_dispatch:       # manual trigger
 
 jobs:
-  scrape:
+  scrape-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout scraper repo
         uses: actions/checkout@v3
-        with:
-          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,28 +24,23 @@ jobs:
       - name: Run scraper
         run: python scrape_letterboxd.py
 
-      - name: Check git status before commit
+      - name: Configure git for pushing
         run: |
-          git status
-          git diff
-          git diff --name-only
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
 
-      - name: Commit scraped data if changed
+      - name: Clone GitHub Pages repo
+        env:
+          GH_PAGES_PAT: ${{ secrets.GH_PAGES_PAT }}
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add -A
+          git clone https://x-access-token:${GH_PAGES_PAT}@github.com/ptb-im/ptb-im.github.io.git pages
+
+      - name: Copy latest_films.json to GitHub Pages repo
+        run: |
+          cp latest_films.json pages/
+          cd pages
+          git add latest_films.json
           git diff --cached --quiet || (
-            git commit -m "Update scraped data"
-            git push
+            git commit -m "Update latest films JSON from scraper"
+            git push origin main
           )
-        shell: bash
-
-      - name: Upload scrape output files as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: scrape-results
-          path: |
-            debug.html
-            latest_films.json
