@@ -24,7 +24,7 @@ def scrape():
     films = []
 
     # Select diary entries rows
-    entries = soup.select("table.diary-table tr.diary-entry-row")
+    entries = soup.select("table#diary-table tr.diary-entry-row")
 
     for entry in entries[:4]:  # Get last 4 entries
         title_el = entry.select_one("td.td-film-details a.film-title")
