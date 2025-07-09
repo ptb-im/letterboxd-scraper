@@ -27,8 +27,11 @@ def scrape():
     entries = soup.select("table#diary-table tr.diary-entry-row")
 
     for entry in entries[:4]:  # Get last 4 entries
-        title_el = entry.select_one("td.td-film-details a.film-title")
-        date_el = entry.select_one("td.td-day")
+        # Updated selector for title: nested inside td.td-film-details > div.body > header > span > h2.name > a (no class)
+        title_el = entry.select_one("td.td-film-details div.body header.inline-production-masthead span h2.name a")
+
+        # Date selector: day number link inside td.td-day.diary-day.center a
+        date_el = entry.select_one("td.td-day.diary-day.center a")
 
         if not title_el or not date_el:
             print("⚠️ Skipping entry: missing title or date")
