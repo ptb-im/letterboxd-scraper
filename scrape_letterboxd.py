@@ -6,49 +6,41 @@ USERNAME = "paulietheboss"
 URL = f"https://letterboxd.com/{USERNAME}/films/diary/"
 
 def scrape():
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-        )
-    }
-    response = requests.get(URL, headers=headers)
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch page: {response.status_code}")
+    response = requests.get(URL)
+    soup = BeautifulSoup(response.text, "html.parser")
 
-    # Save raw HTML for debugging purposes
+    # Save HTML for debugging
     with open("debug.html", "w", encoding="utf-8") as f:
         f.write(response.text)
 
-    soup = BeautifulSoup(response.text, "html.parser")
     films = []
+    table = soup.find("table", id="diary-table")
+    rows = table.select("tr.diary-entry-row")
 
-    # Select diary entries rows
-    entries = soup.select("table#diary-table tr.diary-entry-row")
+    for row in rows[:4]:  # Get only the latest 4
+        # Title is in the h2 a tag
+        title_tag = row.select_one(".td-film-details h2 a")
+        title = title_tag.text.strip() if title_tag else "Unknown"
 
-    for entry in entries[:4]:  # Get last 4 entries
-        # Updated selector for title: nested inside td.td-film-details > div.body > header > span > h2.name > a (no class)
-        title_el = entry.select_one("td.td-film-details div.body header.inline-production-masthead span h2.name a")
+        # Date watched is in the .td-day column
+        date_tag = row.select_one(".td-day a")
+        date = date_tag.text.strip() if date_tag else "Unknown"
 
-        # Date selector: day number link inside td.td-day.diary-day.center a
-        date_el = entry.select_one("td.td-day.diary-day.center a")
-
-        if not title_el or not date_el:
-            print("⚠️ Skipping entry: missing title or date")
-            continue
-
-        title = title_el.text.strip()
-        date = date_el.text.strip()
-        film_url = "https://letterboxd.com" + title_el.get("href", "")
+        # Poster URL is in the <div> with class poster film-poster
+        poster_div = row.select_one(".film-poster")
+        poster_url = None
+        if poster_div and poster_div.has_attr("data-poster-url"):
+            poster_path = poster_div["data-poster-url"]
+            poster_url = f"https://letterboxd.com{poster_path}"
 
         films.append({
             "title": title,
             "date": date,
-            "url": film_url
+            "poster": poster_url
         })
 
     with open("latest_films.json", "w", encoding="utf-8") as f:
-        json.dump(films, f, indent=2, ensure_ascii=False)
+        json.dump(films, f, indent=2)
 
 if __name__ == "__main__":
     scrape()
