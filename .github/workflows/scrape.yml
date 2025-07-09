@@ -2,8 +2,8 @@ name: Scrape Letterboxd and Deploy JSON
 
 on:
   schedule:
-    - cron: "0 0 * * *"   # daily at midnight UTC
-  workflow_dispatch:       # manual trigger
+    - cron: "0 0 * * *" # daily at midnight UTC
+  workflow_dispatch: # manual trigger
 
 jobs:
   scrape-and-push:
@@ -35,12 +35,16 @@ jobs:
         run: |
           git clone https://x-access-token:${GH_PAGES_PAT}@github.com/ptb-im/ptb-im.github.io.git pages
 
-      - name: Copy latest_films.json to GitHub Pages repo
+      - name: Copy latest_films.json and push if changed
+        env:
+          GH_PAGES_PAT: ${{ secrets.GH_PAGES_PAT }}
         run: |
           cp latest_films.json pages/
           cd pages
           git add latest_films.json
-          git diff --cached --quiet || (
+          if ! git diff --cached --quiet; then
             git commit -m "Update latest films JSON from scraper"
-            git push origin main
-          )
+            git push https://${GH_PAGES_PAT}@github.com/ptb-im/ptb-im.github.io.git main
+          else
+            echo "No changes to commit"
+          fi
